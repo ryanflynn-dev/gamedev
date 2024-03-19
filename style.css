@@ -1,0 +1,45 @@
+body {
+  background-color: #000;
+  color: #fff;
+  font-family: "Press Start 2P", cursive; /* A font that gives a retro video game look */
+}
+
+.arcade {
+  text-align: center;
+  padding-top: 50px;
+}
+
+.arcade-title {
+  font-size: 24px;
+  color: #0f0;
+  text-shadow: 0 0 10px #0f0, 0 0 20px #0f0, 0 0 30px #0f0, 0 0 40px #0f0;
+}
+
+.links {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 20px;
+  padding: 20px;
+}
+
+.link {
+  background-color: #222;
+  color: #ffd700;
+  padding: 10px;
+  border: 2px solid #ffd700;
+  border-radius: 5px;
+  text-decoration: none;
+  transition: background-color 0.5s, color 0.5s;
+}
+
+.link:hover {
+  background-color: #ffd700;
+  color: #000;
+  cursor: pointer;
+}
+
+@media (max-width: 600px) {
+  .links {
+    grid-template-columns: 1fr;
+  }
+}
