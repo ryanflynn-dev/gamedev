@@ -34,9 +34,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // VARIABLES
 
-  const gravity = 0.1;
+  const GRAVITY = 0.1;
 
-  const people = [
+  const enemies = [
     {
       x: 300,
       y: 200,
@@ -48,20 +48,20 @@ document.addEventListener("DOMContentLoaded", function () {
       deceleration: 0.91,
       width: 20,
       height: 20,
-      color: "cyan",
+      color: "blue",
       jumpSpeed: 15,
       onGround: false,
       direction: 0,
       isAttacking: false,
     },
     {
-      x: 50,
-      y: 200,
+      x: 200,
+      y: 100,
       vx: 0,
       vy: 0,
       ax: 0,
       ay: 0,
-      speed: 0.3,
+      speed: 0.5,
       deceleration: 0.91,
       width: 20,
       height: 20,
@@ -69,21 +69,73 @@ document.addEventListener("DOMContentLoaded", function () {
       jumpSpeed: 15,
       onGround: false,
       direction: 0,
+      isAttacking: false,
+    },
+    {
+      x: 400,
+      y: 100,
+      vx: 0,
+      vy: 0,
+      ax: 0,
+      ay: 0,
+      speed: 0.5,
+      deceleration: 0.91,
+      width: 20,
+      height: 20,
+      color: "blue",
+      jumpSpeed: 15,
+      onGround: false,
+      direction: 0,
+      isAttacking: false,
+    },
+    {
+      x: 500,
+      y: canvas.height - 40,
+      vx: 0,
+      vy: 0,
+      ax: 0,
+      ay: 0,
+      speed: 0.5,
+      deceleration: 0.91,
+      width: 20,
+      height: 20,
+      color: "blue",
+      jumpSpeed: 15,
+      onGround: false,
+      direction: 0,
+      isAttacking: false,
     },
   ];
-  const player = people[0];
-  const enemy = people[1];
+
+  const player = {
+    x: 20,
+    y: 100,
+    vx: 0,
+    vy: 0,
+    ax: 0,
+    ay: 0,
+    speed: 0.5,
+    deceleration: 0.91,
+    width: 20,
+    height: 20,
+    color: "cyan",
+    jumpSpeed: 15,
+    grounded: false,
+    direction: 0,
+    isAttacking: false,
+  }
+
 
   const platforms = [
     {
       x: 0,
-      y: canvas.height - 50,
+      y: canvas.height - 20,
       width: canvas.width,
       height: 50,
       color: "green",
     },
     {
-      x: 200,
+      x: 300,
       y: canvas.height - 100,
       width: 100,
       height: 50,
@@ -105,25 +157,20 @@ document.addEventListener("DOMContentLoaded", function () {
     },
   ];
 
-  const keys = {
-    left: false,
-    right: false,
-    jump: false,
-    attack: false,
-    down: false,
-    up: false,
-  };
+
 
   // FUNCTIONS
 
-  function drawPeople() {
-    for (let i = 0; i < people.length; i++) {
-      ctx.fillStyle = people[i].color;
+
+  // RENDERING FUNCTIONS
+  function renderEnemy() {
+    for (let i = 0; i < enemies.length; i++) {
+      ctx.fillStyle = enemies[i].color;
       ctx.beginPath();
       ctx.arc(
-        people[i].x + people[i].width / 2,
-        people[i].y + people[i].height / 2,
-        people[i].width / 2,
+        enemies[i].x + enemies[i].width / 2,
+        enemies[i].y + enemies[i].height / 2,
+        enemies[i].width / 2,
         0,
         2 * Math.PI
       );
@@ -132,75 +179,72 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  function drawPlatforms() {
+  function renderPlatforms() {
     platforms.forEach(function (platform) {
       ctx.fillStyle = platform.color;
       ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
     });
   }
 
-  function updatePeoplePosition() {
-    for (let i = 0; i < people.length; i++) {
-      people[i].vx += people[i].ax;
-      people[i].vy += people[i].ay;
-      people[i].vx *= people[i].deceleration;
-      people[i].vy *= people[i].deceleration;
-      people[i].x += people[i].vx;
-      people[i].y += people[i].vy;
+  function renderPlayer() {
+    ctx.fillStyle = player.color;
+    ctx.beginPath();
+    ctx.arc(
+      player.x + player.width / 2,
+      player.y + player.height / 2,
+      player.width / 2,
+      0,
+      2 * Math.PI
+    );
+    ctx.fill();
+    ctx.closePath();
     }
+
+  // UPDATING FUNCTIONS
+
+  function updatePlayer() {
+    player.vx += player.ax;
+    player.vy += player.ay;
+    player.vx *= player.deceleration;
+    player.vy *= player.deceleration;
+    player.x += player.vx;
+    player.y += player.vy;
   }
 
-  function playerAttack() {
-    const distance = getVectorDistance(enemy, player);
-    player.isAttacking = true;
-
-    if (distance < 50 && player.isAttacking) {
-      ctx.beginPath();
-      ctx.moveTo(player.x + player.width / 2, player.y + player.height / 2);
-      ctx.lineTo(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2);
-      ctx.stroke();
-      enemy.color = "red";
-    } else {
-      enemy.color = "blue";
+  function updateEnemy() {
+    for (let i = 0; i < enemies.length; i++) {
+      enemies[i].vx += enemies[i].ax;
+      enemies[i].vy += enemies[i].ay;
+      enemies[i].vx *= enemies[i].deceleration;
+      enemies[i].vy *= enemies[i].deceleration;
+      enemies[i].x += enemies[i].vx;
+      enemies[i].y += enemies[i].vy;
     }
-    enemy.color = "blue";
+    moveAI();
   }
 
-  function applyGravity() {
-    for (let i = 0; i < people.length; i++) {
-      if (!people[i].onGround) {
-        people[i].ay += gravity;
-      } else {
-        people[i].ay = 0;
-        people[i].vy = 0;
-      }
-    }
-  }
+// PHYSICS FUNCTIONS
 
-  function jump() {
-    if (player.onGround) {
-      player.vy = -player.jumpSpeed;
-    }
-  }
 
-  function checkPlatformCollision() {
-    for (let i = 0; i < people.length; i++) {
-      people[i].onGround = false;
+  
+  function checkPlatformCollisionEnemy() {
+    for (let i = 0; i < enemies.length; i++) {
+      enemies[i].onGround = false;
       for (let j = 0; j < platforms.length; j++) {
         if (
-          people[i].x < platforms[j].x + platforms[j].width &&
-          people[i].x + people[i].width > platforms[j].x &&
-          people[i].y < platforms[j].y + platforms[j].height &&
-          people[i].y + people[i].height > platforms[j].y
+          enemies[i].x < platforms[j].x + platforms[j].width &&
+          enemies[i].x + enemies[i].width > platforms[j].x &&
+          enemies[i].y < platforms[j].y + platforms[j].height &&
+          enemies[i].y + enemies[i].height > platforms[j].y
         ) {
-          const peopleBottom = people[i].y + people[i].height;
+          const bottomEnemy = enemies[i].y + enemies[i].height;
           const isTopCollision =
-            peopleBottom <= platforms[j].y + Math.abs(people[i].vy);
+            bottomEnemy <= platforms[j].y + Math.abs(enemies[i].vy);
 
-          if (isTopCollision && people[i].vy >= 0) {
-            people[i].y = platforms[j].y - people[i].height;
-            people[i].vy = 0;
-            people[i].onGround = true;
+          if (isTopCollision && enemies[i].vy >= 0) {
+            enemies[i].y = platforms[j].y - enemies[i].height;
+            enemies[i].vy = 0;
+            enemies[i].onGround = true;
           } else {
             // should stop here
           }
@@ -209,54 +253,161 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  function checkBoundaries() {
-    for (let i = 0; i < people.length; i++) {
-      if (people[i].x < 0) {
-        people[i].x = 0;
-      } else if (people[i].x + people[i].width > canvas.width) {
-        people[i].x = canvas.width - people[i].width;
-      }
-    }
-  }
-
-  function checkDistance() {
-    for (let i = 0; i < people.length; i++) {
-      for (let j = 0; j < people.length; j++) {
-        if (i !== j) {
-          const distance = getVectorDistance(people[i], people[j]);
-          if (distance < 50) {
-            player.color = "red";
-            ctx.strokeStyle = "red";
-            ctx.beginPath();
-            ctx.moveTo(
-              people[i].x + people[i].width / 2,
-              people[i].y + people[i].height / 2
-            );
-            ctx.lineTo(
-              people[j].x + people[j].width / 2,
-              people[j].y + people[j].height / 2
-            );
-            ctx.stroke();
-          } else {
-            player.color = "cyan";
-          }
+  function checkPlatformCollisionPlayer() {
+    player.grounded = false;
+    for (let i = 0; i < platforms.length; i++) {
+      if (
+        player.x < platforms[i].x + platforms[i].width &&
+        player.x + player.width > platforms[i].x &&
+        player.y < platforms[i].y + platforms[i].height &&
+        player.y + player.height > platforms[i].y
+      ) {
+        const bottomPlayer = player.y + player.height;
+        const isTopCollision =
+          bottomPlayer <= platforms[i].y + Math.abs(player.vy);
+        if (isTopCollision && player.vy >= 0) {
+          player.y = platforms[i].y - player.height;
+          player.vy = 0;
+          player.grounded = true;
         }
       }
     }
   }
 
-  function moveAI() {
-    const distance = getVectorDistance(enemy, player);
-
-    if (distance < 200) {
-      const directionVector = offsetVector(player, enemy);
-      const normalizedVector = normaliseVector(directionVector);
-
-      enemy.vx = normalizedVector.x * enemy.speed;
-    } else {
-      enemy.vx = 0;
+  function checkBoundariesEnemy() {
+    for (let i = 0; i < enemies.length; i++) {
+      if (enemies[i].x < 0) {
+        enemies[i].x = 0;
+      } else if (enemies[i].x + enemies[i].width > canvas.width) {
+        enemies[i].x = canvas.width - enemies[i].width;
+      }
     }
   }
+
+  function checkBoundariesPlayer() {
+    if (player.x < 0) {
+      player.x = 0;
+    } else if (player.x + player.width > canvas.width) {
+      player.x = canvas.width - player.width;
+    }
+  }
+
+  function applyGravityEnemy() {
+    for (let i = 0; i < enemies.length; i++) {
+      if (!enemies[i].onGround) {
+        enemies[i].ay += GRAVITY;
+      } else {
+        enemies[i].ay = 0;
+        enemies[i].vy = 0;
+      }
+    }
+  }
+
+  function applyGravityPlayer() {
+    if (!player.grounded) {
+      player.ay += GRAVITY;
+    } else {
+      player.ay = 0;
+      player.vy = 0;
+    }
+  }
+
+  // PLAYER FUNCTIONS
+
+  function playerJump() {
+      player.vy = -player.jumpSpeed;
+  }
+
+  function playerAttackEnemy(enemy) {
+      const distance = getVectorDistance(player, enemy);
+      if (distance < 50) {
+        ctx.beginPath();
+        ctx.moveTo(player.x + player.width / 2, player.y + player.height / 2);
+        ctx.lineTo(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2);
+        ctx.stroke();
+        enemy.vx = enemy.x > player.x ? +10 : -10;
+        enemy.color = "red";
+      } else {
+        enemy.color = "blue";
+      }
+  }
+
+  function playerAttack() {
+    for (let i = 0; i < enemies.length; i++) {
+      const enemy = enemies[i];
+      const distance = getVectorDistance(player, enemy);
+      player.isAttacking = true;
+      console.log(player.isAttacking);
+      if (distance < 50) {
+        playerAttackEnemy(enemy);
+        setTimeout(function () {
+          enemy.color = "blue";
+          player.isAttacking = false;
+          console.log(player.isAttacking);
+        }, 500);
+      } else {
+        setTimeout(function () {
+          player.isAttacking = false;
+          console.log(player.isAttacking);
+        }, 500);
+      }
+    } 
+  }
+
+
+
+  // AI FUNCTIONS
+
+  // function distanceFromPeopleToPlayer() {
+  //   for (let i = 0; i < people.length; i++) {
+  //     for (let j = 0; j < people.length; j++) {
+  //       if (i !== j) {
+  //         const distance = getVectorDistance(people[i], people[j]);
+  //         if (distance < 10) {
+  //           player.color = "red";
+  //           ctx.strokeStyle = "red";
+  //           ctx.beginPath();
+  //           ctx.moveTo(
+  //             people[i].x + people[i].width / 2,
+  //             people[i].y + people[i].height / 2
+  //           );
+  //           ctx.lineTo(
+  //             people[j].x + people[j].width / 2,
+  //             people[j].y + people[j].height / 2
+  //           );
+  //           ctx.stroke();
+  //         } else {
+  //           player.color = "cyan";
+  //         }
+  //       }
+  //     }
+  //   }
+  // }
+
+  function moveAI() {
+    for (let i = 0; i < enemies.length; i++) {
+      const distance = getVectorDistance(enemies[i], player);
+
+      if (distance < 100) {
+        const directionVector = offsetVector(player, enemies[i]);
+        const normalizedVector = normaliseVector(directionVector);
+
+        enemies[i].vx = normalizedVector.x * enemies[i].speed;
+      } else {
+        enemies[i].vx = 0;
+      }
+    }
+  }
+
+  // INPUT FUNCTIONS
+  const keys = {
+    left: false,
+    right: false,
+    jump: false,
+    attack: false,
+    down: false,
+    up: false,
+  };
 
   function checkKeys() {
     if (keys.left) {
@@ -269,10 +420,14 @@ document.addEventListener("DOMContentLoaded", function () {
       player.ax = 0;
     }
     if (keys.jump) {
-      jump();
+      if (player.grounded) {
+      playerJump();
+      }
     }
     if (keys.attack) {
+      if (!player.isAttacking) {
       playerAttack();
+    }
     }
   }
 
@@ -349,18 +504,42 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
-  // GAME
-  function animate() {
+  // GAME LOGIC
+
+  function render() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    renderPlatforms();
+    renderPlayer();
+    renderEnemy();
+  }
+
+  function update() {
+    updatePlayer();
+    updateEnemy();
+  }
+
+  function input() {
     checkKeys();
-    drawPeople();
-    drawPlatforms();
-    checkBoundaries();
-    updatePeoplePosition();
-    moveAI();
-    checkDistance();
-    checkPlatformCollision();
-    applyGravity();
+  }
+
+  function physics() {
+    // ENEMY
+    checkPlatformCollisionEnemy();
+    checkBoundariesEnemy();
+    applyGravityEnemy();
+
+    // PLAYER
+    checkPlatformCollisionPlayer();
+    checkBoundariesPlayer();
+    applyGravityPlayer();
+
+  }
+
+  function animate() {
+    input();
+    update();
+    physics();
+    render();
 
     requestAnimationFrame(animate);
   }
