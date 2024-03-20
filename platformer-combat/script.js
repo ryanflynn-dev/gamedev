@@ -34,7 +34,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // VARIABLES
 
-  const GRAVITY = 0.1;
+  const GRAVITY = 2;
 
   const enemies = [
     {
@@ -44,87 +44,43 @@ document.addEventListener("DOMContentLoaded", function () {
       vy: 0,
       ax: 0,
       ay: 0,
-      speed: 0.5,
+      speed: 45,
+      weight: 0.5,
       deceleration: 0.91,
       width: 20,
       height: 20,
       color: "blue",
-      jumpSpeed: 15,
+      jumpSpeed: 750,
       onGround: false,
       direction: 0,
       isAttacking: false,
-    },
-    {
-      x: 200,
-      y: 100,
-      vx: 0,
-      vy: 0,
-      ax: 0,
-      ay: 0,
-      speed: 0.5,
-      deceleration: 0.91,
-      width: 20,
-      height: 20,
-      color: "blue",
-      jumpSpeed: 15,
-      onGround: false,
-      direction: 0,
-      isAttacking: false,
-    },
-    {
-      x: 400,
-      y: 100,
-      vx: 0,
-      vy: 0,
-      ax: 0,
-      ay: 0,
-      speed: 0.5,
-      deceleration: 0.91,
-      width: 20,
-      height: 20,
-      color: "blue",
-      jumpSpeed: 15,
-      onGround: false,
-      direction: 0,
-      isAttacking: false,
-    },
-    {
-      x: 500,
-      y: canvas.height - 40,
-      vx: 0,
-      vy: 0,
-      ax: 0,
-      ay: 0,
-      speed: 0.5,
-      deceleration: 0.91,
-      width: 20,
-      height: 20,
-      color: "blue",
-      jumpSpeed: 15,
-      onGround: false,
-      direction: 0,
-      isAttacking: false,
+      pY: 0,
+      health: 100,
+      damage: 20,
     },
   ];
 
   const player = {
     x: 20,
+    pY: 0,
     y: 100,
     vx: 0,
     vy: 0,
     ax: 0,
     ay: 0,
-    speed: 0.5,
+    speed: 30,
+    weight: 1,
     deceleration: 0.91,
     width: 20,
     height: 20,
     color: "cyan",
-    jumpSpeed: 15,
+    jumpSpeed: 750,
     grounded: false,
     direction: "idle",
     isAttacking: false,
+    health: 100,
+    damage: 20,
   };
-
 
   const platforms = [
     {
@@ -195,7 +151,7 @@ document.addEventListener("DOMContentLoaded", function () {
     );
     ctx.fill();
     ctx.closePath();
-    }
+  }
 
   function renderProjectiles() {
     for (let i = 0; i < projectiles.length; i++) {
@@ -213,7 +169,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-// PHYSICS FUNCTIONS
+  // PHYSICS FUNCTIONS
 
   function checkPlatformCollisionEnemy() {
     for (let i = 0; i < enemies.length; i++) {
@@ -226,10 +182,9 @@ document.addEventListener("DOMContentLoaded", function () {
           enemies[i].y + enemies[i].height > platforms[j].y
         ) {
           const bottomEnemy = enemies[i].y + enemies[i].height;
-          const isTopCollision =
-            bottomEnemy <= platforms[j].y + Math.abs(enemies[i].vy);
+          const fromTop = enemies[i].pY + enemies[i].height <= platforms[j].y;
 
-          if (isTopCollision && enemies[i].vy >= 0) {
+          if (fromTop && bottomEnemy >= platforms[j].y) {
             enemies[i].y = platforms[j].y - enemies[i].height;
             enemies[i].vy = 0;
             enemies[i].onGround = true;
@@ -238,6 +193,7 @@ document.addEventListener("DOMContentLoaded", function () {
           }
         }
       }
+      enemies[i].pY = enemies[i].y;
     }
   }
 
@@ -251,15 +207,15 @@ document.addEventListener("DOMContentLoaded", function () {
         player.y + player.height > platforms[i].y
       ) {
         const bottomPlayer = player.y + player.height;
-        const isTopCollision =
-          bottomPlayer <= platforms[i].y + Math.abs(player.vy);
-        if (isTopCollision && player.vy >= 0) {
+        const fromTop = player.pY + player.height <= platforms[i].y;
+        if (fromTop && bottomPlayer >= platforms[i].y) {
           player.y = platforms[i].y - player.height;
           player.vy = 0;
           player.grounded = true;
         }
       }
     }
+    player.pY = player.y;
   }
 
   function checkBoundariesEnemy() {
@@ -282,58 +238,46 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function applyGravityEnemy() {
     for (let i = 0; i < enemies.length; i++) {
-      if (!enemies[i].onGround) {
-        enemies[i].ay += GRAVITY;
+      if (!enemies[i].grounded) {
+        enemies[i].ay += GRAVITY * enemies[i].weight;
       } else {
         enemies[i].ay = 0;
-        enemies[i].vy = 0;
       }
     }
   }
 
   function applyGravityPlayer() {
     if (!player.grounded) {
-      player.ay += GRAVITY;
+      player.ay += GRAVITY * player.weight;
     } else {
       player.ay = 0;
-      player.vy = 0;
     }
   }
 
   // PLAYER FUNCTIONS
 
-  function updatePlayer() {
+  function updatePlayer(deltaTime) {
     player.vx += player.ax;
     player.vy += player.ay;
     player.vx *= player.deceleration;
     player.vy *= player.deceleration;
-    player.x += player.vx;
-    player.y += player.vy;
-  }
-
-  function updateProjectiles() {
-    for (let i = 0; i < projectiles.length; i++) {
-      projectiles[i].x += projectiles[i].vx;
-      projectiles[i].y += projectiles[i].vy;
-    }
+    player.x += player.vx * deltaTime;
+    player.y += player.vy * deltaTime;
   }
 
   function playerJump() {
-      player.vy = -player.jumpSpeed;
+    player.vy = -player.jumpSpeed;
   }
 
   function playerAttackEnemy(enemy) {
-      const distance = getVectorDistance(player, enemy);
-      if (distance < 50) {
-        ctx.beginPath();
-        ctx.moveTo(player.x + player.width / 2, player.y + player.height / 2);
-        ctx.lineTo(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2);
-        ctx.stroke();
-        enemy.vx = enemy.x > player.x ? +10 : -10;
-        enemy.color = "red";
-      } else {
-        enemy.color = "blue";
-      }
+    const distance = getVectorDistance(player, enemy);
+    if (distance < 50) {
+      enemy.x += enemy.x > player.x ? 10 : -10;
+      enemy.health -= player.damage;
+      enemy.color = "red";
+    } else {
+      enemy.color = "blue";
+    }
   }
 
   function playerAttack() {
@@ -341,21 +285,43 @@ document.addEventListener("DOMContentLoaded", function () {
       const enemy = enemies[i];
       const distance = getVectorDistance(player, enemy);
       player.isAttacking = true;
-      console.log(player.isAttacking);
       if (distance < 50) {
         playerAttackEnemy(enemy);
         setTimeout(function () {
           enemy.color = "blue";
           player.isAttacking = false;
-          console.log(player.isAttacking);
         }, 500);
       } else {
         setTimeout(function () {
           player.isAttacking = false;
-          console.log(player.isAttacking);
         }, 500);
       }
-    } 
+    }
+  }
+
+  // PROJECTILE FUNCTIONS
+
+  function updateProjectiles(deltaTime) {
+    for (let j = 0; j < projectiles.length; j++) {
+      const projectile = projectiles[j];
+      projectile.x += projectile.vx * deltaTime;
+      if (
+        projectile.x < 0 ||
+        projectile.x > canvas.width ||
+        projectile.y < 0 ||
+        projectile.y > canvas.height
+      ) {
+        projectiles.splice(j, 1);
+      }
+      for (let i = 0; i < enemies.length; i++) {
+        const enemy = enemies[i];
+        const distance = getVectorDistance(projectile, enemy);
+        if (distance < projectile.width / 2 + enemy.width / 2) {
+          projectiles.splice(j, 1);
+          enemies[i].health -= player.damage;
+        }
+      }
+    }
   }
 
   function playerProjectile(direction) {
@@ -369,41 +335,40 @@ document.addEventListener("DOMContentLoaded", function () {
       width: 5,
       height: 5,
       color: "orange",
-    })
+    });
 
     setTimeout(function () {
       projectiles.pop();
-    }, 10000);
+      player.isAttacking = false;
+    }, 300);
 
     if (direction === "left") {
-      projectiles[projectiles.length - 1].vx = -10;
+      projectiles[projectiles.length - 1].vx = -900;
     } else if (direction === "right") {
-      projectiles[projectiles.length - 1].vx = 10;
+      projectiles[projectiles.length - 1].vx = 900;
     }
   }
 
   function shootProjectile() {
-    if (!player.isAttacking) {
-      player.isAttacking = true;
-      const direction = player.direction;
-      playerProjectile(direction);
+    if (player.isAttacking) {
+      return;
     }
+    player.isAttacking = true;
+    const direction = player.direction;
+    playerProjectile(direction);
   }
-
-
 
   // AI FUNCTIONS
 
-  function updateEnemy() {
+  function updateEnemy(deltaTime) {
     for (let i = 0; i < enemies.length; i++) {
       const enemy = enemies[i];
       enemy.vx += enemy.ax;
       enemy.vy += enemy.ay;
       enemy.vx *= enemy.deceleration;
       enemy.vy *= enemy.deceleration;
-      enemy.x += enemy.vx;
-      enemy.y += enemy.vy;
-
+      enemy.x += enemy.vx * deltaTime;
+      enemy.y += enemy.vy * deltaTime;
 
       moveAI(enemy);
       enemyAttack(enemy);
@@ -411,31 +376,30 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function moveAI(enemy) {
-      const distance = getVectorDistance(enemy, player);
+    const distance = getVectorDistance(enemy, player);
 
-      if (distance < 100) {
-        const directionVector = offsetVector(player, enemy);
-        const normalizedVector = normaliseVector(directionVector);
+    if (distance < 100) {
+      const directionVector = offsetVector(player, enemy);
+      const normalizedVector = normaliseVector(directionVector);
 
-        enemy.vx = normalizedVector.x * enemy.speed;
-      } else {
-        enemy.vx = 0;
-      }
+      enemy.vx = normalizedVector.x * enemy.speed;
+    } else {
+      enemy.vx = 0;
     }
+  }
 
   function enemyAttack(enemy) {
-      const distance = getVectorDistance(enemy, player);
-      if (distance < 20) {
-        enemy.color = "pink";
-        player.color = "purple";
-      } else { 
-        setTimeout(function () {
-          player.color = "cyan";
-        }, 500)
-        enemy.color = "blue";
-      }
-      console.log(player.color)
+    const distance = getVectorDistance(enemy, player);
+    if (distance < 20) {
+      player.health -= 1;
+      player.x += player.x > enemy.x ? 10 : -10;
+    } else {
+      setTimeout(function () {
+        player.color = "cyan";
+      }, 500);
+      enemy.color = "blue";
     }
+  }
 
   // INPUT FUNCTIONS
   const keys = {
@@ -460,13 +424,13 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     if (keys.jump) {
       if (player.grounded) {
-      playerJump();
+        playerJump();
       }
     }
     if (keys.attack) {
       if (!player.isAttacking) {
-      playerAttack();
-    }
+        playerAttack();
+      }
     }
     if (keys.shoot) {
       if (!player.isAttacking) {
@@ -562,13 +526,12 @@ document.addEventListener("DOMContentLoaded", function () {
     renderEnemy();
     renderPlayer();
     renderProjectiles();
-
   }
 
-  function update() {
-    updatePlayer();
-    updateEnemy();
-    updateProjectiles();
+  function update(deltaTime) {
+    updatePlayer(deltaTime);
+    updateEnemy(deltaTime);
+    updateProjectiles(deltaTime);
   }
 
   function input() {
@@ -585,14 +548,24 @@ document.addEventListener("DOMContentLoaded", function () {
     checkPlatformCollisionPlayer();
     checkBoundariesPlayer();
     applyGravityPlayer();
-
   }
 
-  function animate() {
+  function debug(deltaTime) {
+    const log = console.log;
+    log(enemies[0].health);
+  }
+
+  let lastTime = performance.now();
+
+  function animate(timestamp = 0) {
+    const deltaTime = (timestamp - lastTime) / 1000;
+    lastTime = timestamp;
+
     input();
-    update();
-    physics();
+    update(deltaTime);
+    physics(deltaTime);
     render();
+    debug(deltaTime);
 
     requestAnimationFrame(animate);
   }
