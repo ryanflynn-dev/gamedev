@@ -121,9 +121,9 @@ document.addEventListener("DOMContentLoaded", function () {
     color: "cyan",
     jumpSpeed: 15,
     grounded: false,
-    direction: 0,
+    direction: "idle",
     isAttacking: false,
-  }
+  };
 
 
   const platforms = [
@@ -157,10 +157,7 @@ document.addEventListener("DOMContentLoaded", function () {
     },
   ];
 
-
-
-  // FUNCTIONS
-
+  const projectiles = [];
 
   // RENDERING FUNCTIONS
   function renderEnemy() {
@@ -200,33 +197,24 @@ document.addEventListener("DOMContentLoaded", function () {
     ctx.closePath();
     }
 
-  // UPDATING FUNCTIONS
-
-  function updatePlayer() {
-    player.vx += player.ax;
-    player.vy += player.ay;
-    player.vx *= player.deceleration;
-    player.vy *= player.deceleration;
-    player.x += player.vx;
-    player.y += player.vy;
-  }
-
-  function updateEnemy() {
-    for (let i = 0; i < enemies.length; i++) {
-      enemies[i].vx += enemies[i].ax;
-      enemies[i].vy += enemies[i].ay;
-      enemies[i].vx *= enemies[i].deceleration;
-      enemies[i].vy *= enemies[i].deceleration;
-      enemies[i].x += enemies[i].vx;
-      enemies[i].y += enemies[i].vy;
+  function renderProjectiles() {
+    for (let i = 0; i < projectiles.length; i++) {
+      ctx.fillStyle = projectiles[i].color;
+      ctx.beginPath();
+      ctx.arc(
+        projectiles[i].x + projectiles[i].width / 2,
+        projectiles[i].y + projectiles[i].height / 2,
+        projectiles[i].width / 2,
+        0,
+        2 * Math.PI
+      );
+      ctx.fill();
+      ctx.closePath();
     }
-    moveAI();
   }
 
 // PHYSICS FUNCTIONS
 
-
-  
   function checkPlatformCollisionEnemy() {
     for (let i = 0; i < enemies.length; i++) {
       enemies[i].onGround = false;
@@ -314,6 +302,22 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // PLAYER FUNCTIONS
 
+  function updatePlayer() {
+    player.vx += player.ax;
+    player.vy += player.ay;
+    player.vx *= player.deceleration;
+    player.vy *= player.deceleration;
+    player.x += player.vx;
+    player.y += player.vy;
+  }
+
+  function updateProjectiles() {
+    for (let i = 0; i < projectiles.length; i++) {
+      projectiles[i].x += projectiles[i].vx;
+      projectiles[i].y += projectiles[i].vy;
+    }
+  }
+
   function playerJump() {
       player.vy = -player.jumpSpeed;
   }
@@ -354,50 +358,84 @@ document.addEventListener("DOMContentLoaded", function () {
     } 
   }
 
+  function playerProjectile(direction) {
+    projectiles.push({
+      x: player.x + player.width / 2,
+      y: player.y + player.height / 2,
+      vx: player.vx,
+      vy: player.vy,
+      ax: 0,
+      ay: 0,
+      width: 5,
+      height: 5,
+      color: "orange",
+    })
+
+    setTimeout(function () {
+      projectiles.pop();
+    }, 10000);
+
+    if (direction === "left") {
+      projectiles[projectiles.length - 1].vx = -10;
+    } else if (direction === "right") {
+      projectiles[projectiles.length - 1].vx = 10;
+    }
+  }
+
+  function shootProjectile() {
+    if (!player.isAttacking) {
+      player.isAttacking = true;
+      const direction = player.direction;
+      playerProjectile(direction);
+    }
+  }
+
 
 
   // AI FUNCTIONS
 
-  // function distanceFromPeopleToPlayer() {
-  //   for (let i = 0; i < people.length; i++) {
-  //     for (let j = 0; j < people.length; j++) {
-  //       if (i !== j) {
-  //         const distance = getVectorDistance(people[i], people[j]);
-  //         if (distance < 10) {
-  //           player.color = "red";
-  //           ctx.strokeStyle = "red";
-  //           ctx.beginPath();
-  //           ctx.moveTo(
-  //             people[i].x + people[i].width / 2,
-  //             people[i].y + people[i].height / 2
-  //           );
-  //           ctx.lineTo(
-  //             people[j].x + people[j].width / 2,
-  //             people[j].y + people[j].height / 2
-  //           );
-  //           ctx.stroke();
-  //         } else {
-  //           player.color = "cyan";
-  //         }
-  //       }
-  //     }
-  //   }
-  // }
-
-  function moveAI() {
+  function updateEnemy() {
     for (let i = 0; i < enemies.length; i++) {
-      const distance = getVectorDistance(enemies[i], player);
+      const enemy = enemies[i];
+      enemy.vx += enemy.ax;
+      enemy.vy += enemy.ay;
+      enemy.vx *= enemy.deceleration;
+      enemy.vy *= enemy.deceleration;
+      enemy.x += enemy.vx;
+      enemy.y += enemy.vy;
 
-      if (distance < 100) {
-        const directionVector = offsetVector(player, enemies[i]);
-        const normalizedVector = normaliseVector(directionVector);
 
-        enemies[i].vx = normalizedVector.x * enemies[i].speed;
-      } else {
-        enemies[i].vx = 0;
-      }
+      moveAI(enemy);
+      enemyAttack(enemy);
     }
   }
+
+  function moveAI(enemy) {
+      const distance = getVectorDistance(enemy, player);
+
+      if (distance < 100) {
+        const directionVector = offsetVector(player, enemy);
+        const normalizedVector = normaliseVector(directionVector);
+
+        enemy.vx = normalizedVector.x * enemy.speed;
+      } else {
+        enemy.vx = 0;
+      }
+    }
+
+  function enemyAttack(enemy) {
+      const distance = getVectorDistance(enemy, player);
+      if (distance < 20) {
+        enemy.color = "pink";
+        player.color = "purple";
+      } else { 
+        setTimeout(function () {
+          player.color = "cyan";
+        }, 500)
+        enemy.color = "blue";
+      }
+      console.log(player.color)
+    }
 
   // INPUT FUNCTIONS
   const keys = {
@@ -405,6 +443,7 @@ document.addEventListener("DOMContentLoaded", function () {
     right: false,
     jump: false,
     attack: false,
+    shoot: false,
     down: false,
     up: false,
   };
@@ -412,10 +451,10 @@ document.addEventListener("DOMContentLoaded", function () {
   function checkKeys() {
     if (keys.left) {
       player.ax = -player.speed;
-      player.direction = -1;
+      player.direction = "left";
     } else if (keys.right) {
       player.ax = player.speed;
-      player.direction = 1;
+      player.direction = "right";
     } else {
       player.ax = 0;
     }
@@ -428,6 +467,11 @@ document.addEventListener("DOMContentLoaded", function () {
       if (!player.isAttacking) {
       playerAttack();
     }
+    }
+    if (keys.shoot) {
+      if (!player.isAttacking) {
+        shootProjectile();
+      }
     }
   }
 
@@ -466,6 +510,9 @@ document.addEventListener("DOMContentLoaded", function () {
       case 16: // Right Shift
         keys.attack = true;
         break;
+      case 17: // Right Control
+        keys.shoot = true;
+        break;
     }
   });
 
@@ -501,6 +548,9 @@ document.addEventListener("DOMContentLoaded", function () {
       case 16: // Right Shift
         keys.attack = false;
         break;
+      case 17: // Right Control
+        keys.shoot = false;
+        break;
     }
   });
 
@@ -509,13 +559,16 @@ document.addEventListener("DOMContentLoaded", function () {
   function render() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     renderPlatforms();
-    renderPlayer();
     renderEnemy();
+    renderPlayer();
+    renderProjectiles();
+
   }
 
   function update() {
     updatePlayer();
     updateEnemy();
+    updateProjectiles();
   }
 
   function input() {
