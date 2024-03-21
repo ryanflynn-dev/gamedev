@@ -637,7 +637,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 	function debug() {
 		const log = console.log;
-		log(player.energy);
+		log();
 	}
 
 	let lastTime = performance.now();
