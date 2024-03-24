@@ -307,6 +307,7 @@ document.addEventListener("DOMContentLoaded", function () {
           player.vy = 0;
           player.grounded = true;
           player.doubleJumpAvailable = false;
+          keys.jump.active = false;
         }
       }
     }
@@ -565,127 +566,167 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // INPUT FUNCTIONS
   const keys = {
-    left: false,
-    right: false,
-    jump: false,
-    attack: false,
-    shoot: false,
-    down: false,
-    up: false,
+    left: {
+      pressed: false,
+      active: false,
+    },
+    right: {
+      pressed: false,
+      active: false,
+    },
+    jump: {
+      pressed: false,
+      active: false,
+    },
+    up: {
+      pressed: false,
+      active: false,
+    },
+    down: {
+      pressed: false,
+      active: false,
+    },
+    attack: {
+      pressed: false,
+      active: false,
+    },
+    shoot: {
+      pressed: false,
+      active: false,
+    },
   };
 
   function checkKeys() {
-    if (keys.left) {
+    if (keys.left.pressed) {
       player.ax = -player.speed;
       player.direction = "left";
-    } else if (keys.right) {
+    } else if (keys.right.pressed) {
       player.ax = player.speed;
       player.direction = "right";
     } else {
       player.ax = 0;
     }
-    if (player.grounded && keys.jump) {
-      console.log("jump");
+    if (player.grounded && keys.jump.pressed) {
       playerJump();
       player.grounded = false;
       player.doubleJumpAvailable = true;
     }
-    if (!player.grounded && keys.jump) {
-      setTimeout(function () {
-        if (player.doubleJumpAvailable && playerPowerUps.includes(1)) {
-          console.log("double jump");
-          playerDoubleJump();
-          player.doubleJumpAvailable = false;
-        }
-      }, 100);
+    if (
+      !player.grounded &&
+      keys.jump.pressed &&
+      keys.jump.active &&
+      player.doubleJumpAvailable &&
+      playerPowerUps.includes(1)
+    ) {
+      playerDoubleJump();
+      player.doubleJumpAvailable = false;
+      keys.jump.active = false;
     }
-    if (keys.attack) {
-      if (!player.isAttacking) {
-        playerAttack();
-      }
+    if (keys.attack.pressed && !player.isAttacking) {
+      playerAttack();
     }
-    if (keys.shoot) {
-      if (!player.isAttacking) {
-        shootProjectile();
-      }
+    if (keys.shoot.pressed && !player.isAttacking) {
+      shootProjectile();
     }
   }
 
   // EVENTS
 
   document.addEventListener("keydown", function keyDown(e) {
-    switch (e.keyCode) {
-      case 37: // Left
-        keys.left = true;
+    switch (e.code) {
+      case "KeyA": // Left
+        keys.left.pressed = true;
         break;
-      case 65: // Left
-        keys.left = true;
+      case "ArrowLeft": // Left
+        keys.left.pressed = true;
         break;
-      case 39: // Right
-        keys.right = true;
+      case "KeyD": // Right
+        keys.right.pressed = true;
         break;
-      case 68: // Right
-        keys.right = true;
+      case "ArrowRight": // Right
+        keys.right.pressed = true;
         break;
-      case 32: // Space
-        e.preventDefault();
-        keys.jump = true;
+      case "Space": // Jump
+        keys.jump.pressed = true;
         break;
-      case 38: // Up
-        keys.up = true;
+      case "ArrowUp": // Up
+        keys.up.pressed = true;
         break;
-      case 87: // Up
-        keys.up = true;
+      case "KeyW": // Up
+        keys.up.pressed = true;
         break;
-      case 83: // Down
-        keys.down = true;
+      case "ArrowDown": // Down
+        keys.down.pressed = true;
         break;
-      case 40: // Down
-        keys.down = true;
+      case "KeyS": // Down
+        keys.down.pressed = true;
         break;
-      case 16: // Right Shift
-        keys.attack = true;
+      case "Comma": // Primary
+        keys.attack.pressed = true;
         break;
-      case 17: // Right Control
-        keys.shoot = true;
+      case "KeyX": // Primary
+        keys.attack.pressed = true;
+        break;
+      case "Period": // Secondary
+        keys.shoot.pressed = true;
+        break;
+      case "KeyZ": // Secondary
+        keys.shoot.pressed = true;
         break;
     }
   });
 
   document.addEventListener("keyup", function keyUp(e) {
-    switch (e.keyCode) {
-      case 37: // Left
-        keys.left = false;
+    switch (e.code) {
+      case "KeyA": // Left
+        keys.left.pressed = false;
         break;
-      case 65: // Left
-        keys.left = false;
+      case "ArrowLeft": // Left
+        keys.left.pressed = false;
         break;
-      case 39: // Right
-        keys.right = false;
+      case "KeyD": // Right
+        keys.right.pressed = false;
         break;
-      case 68: // Right
-        keys.right = false;
+      case "ArrowRight": // Right
+        keys.right.pressed = false;
         break;
-      case 32: // Space
-        keys.jump = false;
+      case "Space": // Jump
+        keys.jump.pressed = false;
+        if (!player.grounded && player.doubleJumpAvailable) {
+          keys.jump.active = true;
+        }
         break;
-      case 38: // Up
-        keys.up = false;
+      case "ArrowUp": // Up
+        keys.up.pressed = false;
+        keys.up.active = false;
         break;
-      case 87: // Up
-        keys.up = false;
+      case "KeyW": // Up
+        keys.up.pressed = false;
+        keys.up.active = false;
         break;
-      case 83: // Down
-        keys.down = false;
+      case "ArrowDown": // Down
+        keys.down.pressed = false;
+        keys.down.active = false;
         break;
-      case 40: // Down
-        keys.down = false;
+      case "KeyS": // Down
+        keys.down.pressed = false;
+        keys.down.active = false;
         break;
-      case 16: // Right Shift
-        keys.attack = false;
+      case "Comma": // Primary
+        keys.attack.pressed = false;
+        keys.attack.active = false;
         break;
-      case 17: // Right Control
-        keys.shoot = false;
+      case "KeyX": // Primary
+        keys.attack.pressed = false;
+        keys.attack.active = false;
+        break;
+      case "Period": // Secondary
+        keys.shoot.pressed = false;
+        keys.shoot.active = false;
+        break;
+      case "KeyZ": // Secondary
+        keys.shoot.pressed = false;
+        keys.shoot.active = false;
         break;
     }
   });
