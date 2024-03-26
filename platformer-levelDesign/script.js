@@ -2,6 +2,9 @@ document.addEventListener("DOMContentLoaded", function () {
   const canvas = document.getElementById("canvas");
   const ctx = canvas.getContext("2d");
 
+  canvas.width = 800;
+  canvas.height = 500;
+
   // UTILS
 
   function offsetVector(a, b) {
@@ -83,6 +86,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
   let ceilings = [];
 
+  let emptySpace = [];
+
   // RENDERING FUNCTIONS
   function renderEnemy() {
     for (let i = 0; i < enemies.length; i++) {
@@ -105,6 +110,37 @@ document.addEventListener("DOMContentLoaded", function () {
       ctx.fillStyle = platform.color;
       ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
     });
+  }
+
+  function renderWalls() {
+    for (let i = 0; i < walls.length; i++) {
+      ctx.fillStyle = walls[i].color;
+      ctx.fillRect(walls[i].x, walls[i].y, walls[i].width, walls[i].height);
+    }
+  }
+
+  function renderCeilings() {
+    for (let i = 0; i < ceilings.length; i++) {
+      ctx.fillStyle = ceilings[i].color;
+      ctx.fillRect(
+        ceilings[i].x,
+        ceilings[i].y,
+        ceilings[i].width,
+        ceilings[i].height
+      );
+    }
+  }
+
+  function renderEmptySpace() {
+    for (let i = 0; i < emptySpace.length; i++) {
+      ctx.fillStyle = black;
+      ctx.fillRect(
+        emptySpace[i].x,
+        emptySpace[i].y,
+        emptySpace[i].width,
+        emptySpace[i].height
+      );
+    }
   }
 
   function renderPowerUps() {
@@ -244,6 +280,21 @@ document.addEventListener("DOMContentLoaded", function () {
         player.y + player.height > ceilings[i].y
       ) {
         player.y = ceilings[i].y + player.height;
+      }
+    }
+  }
+
+  function checkCeilingCollisionEnemy() {
+    for (let i = 0; i < enemies.length; i++) {
+      for (let j = 0; j < ceilings.length; j++) {
+        if (
+          enemies[i].x < ceilings[j].x + ceilings[j].width &&
+          enemies[i].x + enemies[i].width > ceilings[j].x &&
+          enemies[i].y < ceilings[j].y + ceilings[j].height &&
+          enemies[i].y + enemies[i].height > ceilings[j].y
+        ) {
+          enemies[i].y = ceilings[j].y - enemies[i].height;
+        }
       }
     }
   }
@@ -423,6 +474,9 @@ document.addEventListener("DOMContentLoaded", function () {
         },
       ],
       entryPoints: [],
+      walls: [],
+      ceilings: [],
+      emptySpace: [],
     },
     {
       id: 2,
@@ -560,6 +614,9 @@ document.addEventListener("DOMContentLoaded", function () {
         },
       ],
       entryPoints: [],
+      walls: [],
+      ceilings: [],
+      emptySpace: [],
     },
   ];
 
@@ -963,6 +1020,9 @@ document.addEventListener("DOMContentLoaded", function () {
   function render() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     renderPlatforms();
+    renderCeilings();
+    renderWalls();
+    renderEmptySpace();
     renderEnemy();
     renderItems();
     renderPowerUps();
@@ -986,11 +1046,15 @@ document.addEventListener("DOMContentLoaded", function () {
   function physics() {
     // ENEMY
     checkPlatformCollisionEnemy();
+    checkWallCollisionEnemy();
+    checkCeilingCollisionEnemy();
     checkBoundariesEnemy();
     applyGravityEnemy();
 
     // PLAYER
     checkPlatformCollisionPlayer();
+    checkWallCollisionPlayer();
+    checkCeilingCollisionPlayer();
     checkBoundariesPlayer();
     applyGravityPlayer();
   }
