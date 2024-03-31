@@ -45,6 +45,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
   const projectiles = [];
 
+  let playerState = "idle";
+
   const camera = {
     x: 0,
     y: 0,
@@ -68,12 +70,12 @@ document.addEventListener("DOMContentLoaded", function () {
     speed: 30,
     weight: 1,
     deceleration: 0.91,
-    width: 20,
-    height: 20,
+    width: 32,
+    height: 32,
     color: "cyan",
     jumpSpeed: 750,
     grounded: false,
-    direction: "idle",
+    direction: "right",
     isAttacking: false,
     maxHealth: 100,
     health: 100,
@@ -188,18 +190,28 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
+  let currentFrame = 0;
+  let timeSinceLastFrame = 0;
+
   function renderPlayer() {
-    ctx.fillStyle = player.color;
-    ctx.beginPath();
-    ctx.arc(
-      player.x + player.width / 2,
-      player.y + player.height / 2,
-      player.width / 2,
+    if (!playerImgReady) return;
+
+    const animation = animations[playerState];
+    let frameWidth = playerImg.width / animation.frameCount;
+    let frameHeight = playerImg.height;
+    currentFrame %= animation.frameCount;
+
+    ctx.drawImage(
+      playerImg,
+      currentFrame * frameWidth,
       0,
-      2 * Math.PI
+      frameWidth,
+      frameHeight,
+      player.x,
+      player.y,
+      player.width,
+      player.height
     );
-    ctx.fill();
-    ctx.closePath();
   }
 
   function renderProjectiles() {
@@ -249,6 +261,111 @@ document.addEventListener("DOMContentLoaded", function () {
       2 * Math.PI
     );
     ctx.fill();
+  }
+
+  // ASSETS
+
+  const animations = {
+    idle: {
+      startFrame: 0,
+      frameCount: 9,
+      frameDuration: 100,
+    },
+    attack: {
+      startFrame: 0,
+      frameCount: 5,
+      frameDuration: 100,
+    },
+    right: {
+      startFrame: 0,
+      frameCount: 8,
+      frameDuration: 100,
+    },
+    left: {
+      startFrame: 0,
+      frameCount: 8,
+      frameDuration: 100,
+    },
+    jump: {
+      startFrame: 0,
+      frameCount: 9,
+      frameDuration: 200,
+    },
+    shoot: {
+      startFrame: 0,
+      frameCount: 14,
+      frameDuration: 100,
+    },
+  };
+
+  function updateAnimation(deltaTime) {
+    const animation = animations[playerState];
+    timeSinceLastFrame += deltaTime;
+    if (timeSinceLastFrame >= animation.frameDuration) {
+      currentFrame++;
+      timeSinceLastFrame = 0;
+      if (currentFrame >= animation.frameCount) {
+        currentFrame = 0;
+      }
+    }
+  }
+
+  const playerImg = new Image();
+  let playerImgReady = false;
+
+  function loadPlayerImage() {
+    let newSrc = "";
+    switch (playerState) {
+      case "idle":
+        newSrc =
+          "./assets/Samurai_Archer/Idle-" +
+          (player.direction === "right" ? "right" : "left") +
+          ".png";
+        break;
+      case "right":
+        newSrc = "./assets/Samurai_Archer/Walk-right.png";
+        break;
+      case "left":
+        newSrc = "./assets/Samurai_Archer/Walk-left.png";
+        break;
+      case "attack":
+        newSrc =
+          "./assets/Samurai_Archer/Attack_1-" +
+          (player.direction === "right" ? "right" : "left") +
+          ".png";
+        break;
+      case "jump":
+        newSrc =
+          "./assets/Samurai_Archer/Jump-" +
+          (player.direction === "right" ? "right" : "left") +
+          ".png";
+        break;
+      case "shoot":
+        newSrc =
+          "./assets/Samurai_Archer/Shot-" +
+          (player.direction === "right" ? "right" : "left") +
+          ".png";
+        break;
+    }
+
+    if (playerImg.src !== newSrc) {
+      playerImg.src = newSrc;
+      playerImgReady = false;
+      playerImg.addEventListener(
+        "load",
+        () => {
+          playerImgReady = true;
+        },
+        { once: true }
+      );
+    }
+  }
+
+  function setState(newState) {
+    if (playerState !== newState) {
+      playerState = newState;
+      loadPlayerImage();
+    }
   }
 
   // CAMERA FUNCTIONS
@@ -323,6 +440,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function checkLavaCollisionPlayer() {
+    const lavaDamage = 10;
     for (let i = 0; i < lava.length; i++) {
       if (
         player.x < lava[i].x + lava[i].width &&
@@ -330,8 +448,10 @@ document.addEventListener("DOMContentLoaded", function () {
         player.y < lava[i].y + lava[i].height &&
         player.y + player.height > lava[i].y - 5
       ) {
-        player.color = "red";
-        player.health -= 5;
+        setTimeout(function () {
+          player.color = "red";
+          takeDamagePlayer(lavaDamage);
+        }, 1000);
       } else {
         player.color = "cyan";
       }
@@ -552,12 +672,12 @@ document.addEventListener("DOMContentLoaded", function () {
         speed: 30,
         weight: 1,
         deceleration: 0.91,
-        width: 20,
-        height: 20,
+        width: 50,
+        height: 50,
         color: "cyan",
         jumpSpeed: 750,
         grounded: false,
-        direction: "idle",
+        direction: "right",
         isAttacking: false,
         maxHealth: 100,
         health: 100,
@@ -991,24 +1111,25 @@ document.addEventListener("DOMContentLoaded", function () {
     player.vy = -player.jumpSpeed * 1.5;
   }
 
-  function takeDamagePlayer(enemy) {
+  function takeDamagePlayer(damage) {
     if (player.health > 0) {
-      player.health -= enemy.damage;
+      player.health -= damage;
     } else if (player.health <= 0) {
-      player.health = 0;
       killPlayer();
+      player.health = 0;
     }
   }
 
   function killPlayer() {
     // end game here
+    console.log("YOU DIED");
   }
 
   function playerAttackEnemy(enemy) {
     const distance = getVectorDistance(player, enemy);
     if (distance < 50) {
       enemy.vx += enemy.x > player.x ? 1000 : -1000;
-      takeDamageEnemy(enemy);
+      takeDamageEnemy(enemy, player.damage);
     }
   }
 
@@ -1037,6 +1158,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function updateProjectiles(deltaTime) {
     for (let j = 0; j < projectiles.length; j++) {
+      const projectileDamage = player.damage;
       const projectile = projectiles[j];
       projectile.x += projectile.vx * deltaTime;
       if (
@@ -1053,7 +1175,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (distance < projectile.width / 2 + enemy.width / 2) {
           projectiles.splice(j, 1);
           enemy.vx += enemy.x > projectile.x ? 1000 : -1000;
-          takeDamageEnemy(enemy);
+          takeDamageEnemy(enemy, projectileDamage);
         }
       }
     }
@@ -1106,14 +1228,20 @@ document.addEventListener("DOMContentLoaded", function () {
       enemy.x += enemy.vx * deltaTime;
       enemy.y += enemy.vy * deltaTime;
 
+      const distance = getVectorDistance(enemy, player);
+
       moveAI(enemy);
-      enemyAttack(enemy);
+      if (distance < 40) {
+        setTimeout(() => {
+          enemyAttack(enemy);
+        }, 100);
+      }
     }
   }
 
-  function takeDamageEnemy(enemy) {
+  function takeDamageEnemy(enemy, damage) {
     if (enemy.health > 1) {
-      enemy.health -= player.damage;
+      enemy.health -= damage;
     } else if (enemy.health <= 0) {
       killEnemy(enemy);
     }
@@ -1126,7 +1254,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function moveAI(enemy) {
     const distance = getVectorDistance(enemy, player);
-
     if (distance < 100) {
       const directionVector = offsetVector(player, enemy);
       const normalizedVector = normaliseVector(directionVector);
@@ -1138,11 +1265,9 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function enemyAttack(enemy) {
-    const distance = getVectorDistance(enemy, player);
-    if (distance < 20) {
-      takeDamagePlayer(enemy);
-      player.vx += player.x > enemy.x ? 100 : -100;
-    }
+    player.color = "red";
+    player.vx += player.x > enemy.x ? 100 : -100;
+    takeDamagePlayer(enemy.damage);
   }
 
   // INPUT FUNCTIONS
@@ -1181,16 +1306,22 @@ document.addEventListener("DOMContentLoaded", function () {
     if (keys.left.pressed) {
       player.ax = -player.speed;
       player.direction = "left";
+      setState("left");
     } else if (keys.right.pressed) {
       player.ax = player.speed;
       player.direction = "right";
+      setState("right");
     } else {
       player.ax = 0;
+      if (!keys.jump.pressed && !keys.attack.pressed && !keys.shoot.pressed) {
+        setState("idle");
+      }
     }
     if (player.grounded && keys.jump.pressed) {
       playerJump();
       player.grounded = false;
       player.doubleJumpAvailable = true;
+      setState("jump");
     }
     if (
       !player.grounded &&
@@ -1202,12 +1333,15 @@ document.addEventListener("DOMContentLoaded", function () {
       playerDoubleJump();
       player.doubleJumpAvailable = false;
       keys.jump.active = false;
+      setState("jump");
     }
     if (keys.attack.pressed && !player.isAttacking) {
       playerAttack();
+      setState("attack");
     }
     if (keys.shoot.pressed && !player.isAttacking) {
       shootProjectile();
+      setState("shoot");
     }
   }
 
@@ -1279,35 +1413,27 @@ document.addEventListener("DOMContentLoaded", function () {
         break;
       case "ArrowUp": // Up
         keys.up.pressed = false;
-        keys.up.active = false;
         break;
       case "KeyW": // Up
         keys.up.pressed = false;
-        keys.up.active = false;
         break;
       case "ArrowDown": // Down
         keys.down.pressed = false;
-        keys.down.active = false;
         break;
       case "KeyS": // Down
         keys.down.pressed = false;
-        keys.down.active = false;
         break;
       case "Comma": // Primary
         keys.attack.pressed = false;
-        keys.attack.active = false;
         break;
       case "KeyX": // Primary
         keys.attack.pressed = false;
-        keys.attack.active = false;
         break;
       case "Period": // Secondary
         keys.shoot.pressed = false;
-        keys.shoot.active = false;
         break;
       case "KeyZ": // Secondary
         keys.shoot.pressed = false;
-        keys.shoot.active = false;
         break;
     }
   });
@@ -1341,6 +1467,7 @@ document.addEventListener("DOMContentLoaded", function () {
     updatePlayer(deltaTime);
     updateEnemy(deltaTime);
     updateProjectiles(deltaTime);
+    updateAnimation(deltaTime);
     updateCamera();
     updateItems();
     updatePowerUps();
