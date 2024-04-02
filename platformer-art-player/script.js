@@ -45,6 +45,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
   const projectiles = [];
 
+  let playerState = "idle";
+
   const camera = {
     x: 0,
     y: 0,
@@ -163,25 +165,27 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  function renderEntity(entity) {
-    if (!entity.imgReady) return;
-    console.log("rendering", entity.img.src);
+  let currentFrame = 0;
+  let timeSinceLastFrame = 0;
 
-    const animation = entity.animations[entity.state];
-    let frameWidth = entity.img.width / animation.frameCount;
-    let frameHeight = entity.img.height;
-    entity.currentFrame %= animation.frameCount;
+  function renderPlayer() {
+    if (!playerImgReady) return;
+
+    const animation = animations[playerState];
+    let frameWidth = player.img.width / animation.frameCount;
+    let frameHeight = player.img.height;
+    currentFrame %= animation.frameCount;
 
     ctx.drawImage(
-      entity.img,
-      entity.currentFrame * frameWidth,
+      player.img,
+      currentFrame * frameWidth,
       0,
       frameWidth,
       frameHeight,
-      entity.x,
-      entity.y,
-      entity.width,
-      entity.height
+      player.x,
+      player.y,
+      player.width,
+      player.height
     );
   }
 
@@ -236,7 +240,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // ASSETS
 
-  const playerAnimations = {
+  const animations = {
     idle: {
       startFrame: 0,
       frameCount: 9,
@@ -247,7 +251,12 @@ document.addEventListener("DOMContentLoaded", function () {
       frameCount: 5,
       frameDuration: 100,
     },
-    move: {
+    right: {
+      startFrame: 0,
+      frameCount: 8,
+      frameDuration: 100,
+    },
+    left: {
       startFrame: 0,
       frameCount: 8,
       frameDuration: 100,
@@ -264,41 +273,73 @@ document.addEventListener("DOMContentLoaded", function () {
     },
   };
 
-  function updateEntityAnimation(entity, deltaTime) {
-    const animation = entity.animations[entity.state];
-    entity.timeSinceLastFrame += deltaTime;
-    if (entity.timeSinceLastFrame >= animation.frameDuration) {
-      entity.currentFrame++;
-      entity.timeSinceLastFrame = 0;
-      if (entity.currentFrame >= animation.frameCount) {
-        entity.currentFrame = 0;
+  function updateAnimation(deltaTime) {
+    const animation = animations[playerState];
+    timeSinceLastFrame += deltaTime;
+    if (timeSinceLastFrame >= animation.frameDuration) {
+      currentFrame++;
+      timeSinceLastFrame = 0;
+      if (currentFrame >= animation.frameCount) {
+        currentFrame = 0;
       }
     }
   }
 
-  function loadImageForEntity(entity, stateChanges) {
-    let baseSrc = entity.baseImagePath;
-    let newState = stateChanges || entity.state;
-    let newDirection = entity.direction || "right";
-    let newSrc = `./${baseSrc}/${newState}-${newDirection}.png`;
+  const playerImg = new Image();
+  let playerImgReady = false;
 
-    if (entity.img.src !== newSrc) {
-      entity.img.src = newSrc;
-      entity.imgReady = false;
-      entity.img.addEventListener(
+  function loadPlayerImage() {
+    let newSrc = "";
+    switch (playerState) {
+      case "idle":
+        newSrc =
+          "./assets/Samurai_Archer/Idle-" +
+          (player.direction === "right" ? "right" : "left") +
+          ".png";
+        break;
+      case "right":
+        newSrc = "./assets/Samurai_Archer/Walk-right.png";
+        break;
+      case "left":
+        newSrc = "./assets/Samurai_Archer/Walk-left.png";
+        break;
+      case "attack":
+        newSrc =
+          "./assets/Samurai_Archer/Attack_1-" +
+          (player.direction === "right" ? "right" : "left") +
+          ".png";
+        break;
+      case "jump":
+        newSrc =
+          "./assets/Samurai_Archer/Jump-" +
+          (player.direction === "right" ? "right" : "left") +
+          ".png";
+        break;
+      case "shoot":
+        newSrc =
+          "./assets/Samurai_Archer/Shot-" +
+          (player.direction === "right" ? "right" : "left") +
+          ".png";
+        break;
+    }
+
+    if (player.img.src !== newSrc) {
+      player.img.src = newSrc;
+      playerImgReady = false;
+      player.img.addEventListener(
         "load",
         () => {
-          entity.imgReady = true;
+          playerImgReady = true;
         },
         { once: true }
       );
     }
   }
 
-  function setState(entity, newState) {
-    if (entity.state !== newState) {
-      entity.state = newState;
-      loadImageForEntity(entity, newState);
+  function setState(newState) {
+    if (playerState !== newState) {
+      playerState = newState;
+      loadPlayerImage();
     }
   }
 
@@ -596,7 +637,6 @@ document.addEventListener("DOMContentLoaded", function () {
         },
       ],
       player: {
-        name: "player",
         x: 20,
         pY: 0,
         y: 100,
@@ -613,7 +653,6 @@ document.addEventListener("DOMContentLoaded", function () {
         jumpSpeed: 500,
         grounded: false,
         direction: "right",
-        state: "idle",
         isAttacking: false,
         maxHealth: 100,
         health: 100,
@@ -623,9 +662,6 @@ document.addEventListener("DOMContentLoaded", function () {
         energyRegen: 1,
         doubleJumpAvailable: false,
         img: new Image(),
-        imgReady: false,
-        animations: playerAnimations,
-        baseImagePath: "assets/player",
       },
       powerUps: [
         {
@@ -947,22 +983,22 @@ document.addEventListener("DOMContentLoaded", function () {
     if (keys.left.pressed) {
       player.ax = -player.speed;
       player.direction = "left";
-      setState(player, "move");
+      setState("left");
     } else if (keys.right.pressed) {
       player.ax = player.speed;
       player.direction = "right";
-      setState(player, "move");
+      setState("right");
     } else {
       player.ax = 0;
       if (!keys.jump.pressed && !keys.attack.pressed && !keys.shoot.pressed) {
-        setState(player, "idle");
+        setState("idle");
       }
     }
     if (player.grounded && keys.jump.pressed) {
       playerJump();
       player.grounded = false;
       player.doubleJumpAvailable = true;
-      setState(player, "jump");
+      setState("jump");
     }
     if (
       !player.grounded &&
@@ -974,15 +1010,15 @@ document.addEventListener("DOMContentLoaded", function () {
       playerDoubleJump();
       player.doubleJumpAvailable = false;
       keys.jump.active = false;
-      setState(player, "jump");
+      setState("jump");
     }
     if (keys.attack.pressed && !player.isAttacking) {
       playerAttack();
-      setState(player, "attack");
+      setState("attack");
     }
     if (keys.shoot.pressed && !player.isAttacking) {
       shootProjectile();
-      setState(player, "shoot");
+      setState("shoot");
     }
   }
 
@@ -1095,7 +1131,7 @@ document.addEventListener("DOMContentLoaded", function () {
     renderEnemy();
     renderItems();
     renderPowerUps();
-    renderEntity(player);
+    renderPlayer();
     renderProjectiles();
     renderLava();
 
@@ -1108,7 +1144,7 @@ document.addEventListener("DOMContentLoaded", function () {
     updatePlayer(deltaTime);
     updateEnemy(deltaTime);
     updateProjectiles(deltaTime);
-    updateEntityAnimation(player, deltaTime);
+    updateAnimation(deltaTime);
     updateCamera();
     updateItems();
     updatePowerUps();
@@ -1137,7 +1173,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function debug() {
     const log = console.log;
-    log();
+    log(player.health);
   }
 
   let lastTime = performance.now();
@@ -1156,4 +1192,5 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   animate();
+  loadPlayerImage();
 });
