@@ -650,7 +650,7 @@ document.addEventListener("DOMContentLoaded", function () {
         width: 50,
         height: 50,
         color: "cyan",
-        jumpSpeed: 500,
+        jumpSpeed: 750,
         grounded: false,
         direction: "right",
         isAttacking: false,

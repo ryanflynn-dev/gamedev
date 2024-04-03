@@ -165,7 +165,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function renderEntity(entity) {
     if (!entity.imgReady) return;
-    console.log("rendering", entity.img.src);
 
     const animation = entity.animations[entity.state];
     let frameWidth = entity.img.width / animation.frameCount;
@@ -610,7 +609,7 @@ document.addEventListener("DOMContentLoaded", function () {
         width: 50,
         height: 50,
         color: "cyan",
-        jumpSpeed: 500,
+        jumpSpeed: 750,
         grounded: false,
         direction: "right",
         state: "idle",
@@ -626,6 +625,8 @@ document.addEventListener("DOMContentLoaded", function () {
         imgReady: false,
         animations: playerAnimations,
         baseImagePath: "assets/player",
+        currentFrame: 0,
+        timeSinceLastFrame: 0,
       },
       powerUps: [
         {
@@ -1135,9 +1136,9 @@ document.addEventListener("DOMContentLoaded", function () {
     checkLavaCollisionPlayer();
   }
 
-  function debug() {
+  function debug(deltaTime) {
     const log = console.log;
-    log();
+    log(player.timeSinceLastFrame);
   }
 
   let lastTime = performance.now();
@@ -1156,4 +1157,5 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   animate();
+  loadImageForEntity(player, "idle");
 });
