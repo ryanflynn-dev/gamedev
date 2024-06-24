@@ -1212,7 +1212,7 @@ document.addEventListener("DOMContentLoaded", function () {
   let lastTime = performance.now();
 
   function animate(timestamp = 0) {
-    const deltaTime = (timestamp - lastTime) / 1000;
+    let deltaTime = (timestamp - lastTime) / 1000;
     lastTime = timestamp;
     loadLevel(currentLevel);
     update(deltaTime);
@@ -1222,6 +1222,11 @@ document.addEventListener("DOMContentLoaded", function () {
     debug(deltaTime);
 
     requestAnimationFrame(animate);
+  }
+
+  function resetGame() {
+    player.reset();
+    loadLevel(currentLevel);
   }
 
   animate();

@@ -144,20 +144,20 @@ window.onload = () => {
   const hip = new BodyPart(
     canvas.width / 2,
     canvas.height / 2 + 100,
-    30,
-    "grey"
+    40,
+    "pink"
   );
   const head = new BodyPart(
     canvas.width / 2,
     hip.position.y - 180,
     50,
-    "black"
+    "lightgreen"
   );
   const shoulder = new BodyPart(
     canvas.width / 2,
     hip.position.y - 80,
     40,
-    "grey"
+    "lightyellow"
   );
   const armL = new Limb(
     shoulder.position.x - 30,
